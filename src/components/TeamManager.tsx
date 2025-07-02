@@ -1,11 +1,12 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Division, TeamMember } from '@/types/gameTypes';
+import { TeamService } from '@/services/teamService';
+import { useToast } from '@/hooks/use-toast';
 
 interface TeamManagerProps {
   division: Division;
@@ -15,6 +16,7 @@ interface TeamManagerProps {
 
 const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpdateTeam }) => {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [newMember, setNewMember] = useState({
     name: '',
     salesPoints: 0,
@@ -24,45 +26,177 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
     color: '#ff6b35',
     avatar: '🏎️'
   });
+  const { toast } = useToast();
 
   const carAvatars = ['🏎️', '🚗', '🚙', '🚕', '🚐', '🚛', '🏁', '🚓', '🚒', '🚜'];
   const carColors = ['#ff6b35', '#00b4d8', '#90e0ef', '#f72585', '#4cc9f0', '#7209b7', '#f77f00', '#fcbf49', '#d62828', '#003566'];
 
-  const handleAddMember = () => {
-    const member: TeamMember = {
-      id: Date.now().toString(),
-      ...newMember
-    };
-    onUpdateTeam([...teamMembers, member]);
-    setNewMember({
-      name: '',
-      salesPoints: 0,
-      visits: 0,
-      calls: 0,
-      chats: 0,
-      color: '#ff6b35',
-      avatar: '🏎️'
-    });
+  // Load team members from Supabase when division changes
+  useEffect(() => {
+    if (division?.id) {
+      loadTeamMembers();
+    }
+  }, [division?.id]);
+
+  const loadTeamMembers = async () => {
+    if (!division?.id) return;
+    
+    setIsLoading(true);
+    try {
+      const members = await TeamService.getTeamMembers(division.id);
+      onUpdateTeam(members);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data anggota tim",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpdateMember = (updatedMember: TeamMember) => {
-    const updatedMembers = teamMembers.map(member =>
-      member.id === updatedMember.id ? updatedMember : member
-    );
-    onUpdateTeam(updatedMembers);
-    setEditingMember(null);
+  const handleAddMember = async () => {
+    if (!division?.id || !newMember.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Nama anggota harus diisi",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const memberData = {
+        name: newMember.name,
+        sales_points: newMember.salesPoints,
+        visits: newMember.visits,
+        calls: newMember.calls,
+        chats: newMember.chats,
+        color: newMember.color,
+        avatar: newMember.avatar,
+        division_id: division.id
+      };
+
+      const addedMember = await TeamService.addTeamMember(memberData);
+      
+      if (addedMember) {
+        onUpdateTeam([...teamMembers, addedMember]);
+        setNewMember({
+          name: '',
+          salesPoints: 0,
+          visits: 0,
+          calls: 0,
+          chats: 0,
+          color: '#ff6b35',
+          avatar: '🏎️'
+        });
+        toast({
+          title: "Sukses",
+          description: "Anggota tim berhasil ditambahkan",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menambahkan anggota tim",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteMember = (memberId: string) => {
-    const updatedMembers = teamMembers.filter(member => member.id !== memberId);
-    onUpdateTeam(updatedMembers);
+  const handleUpdateMember = async (updatedMember: TeamMember) => {
+    setIsLoading(true);
+    try {
+      const memberData = {
+        name: updatedMember.name,
+        sales_points: updatedMember.salesPoints,
+        visits: updatedMember.visits,
+        calls: updatedMember.calls,
+        chats: updatedMember.chats,
+        color: updatedMember.color,
+        avatar: updatedMember.avatar
+      };
+
+      const result = await TeamService.updateTeamMember(updatedMember.id, memberData);
+      
+      if (result) {
+        const updatedMembers = teamMembers.map(member =>
+          member.id === updatedMember.id ? result : member
+        );
+        onUpdateTeam(updatedMembers);
+        setEditingMember(null);
+        toast({
+          title: "Sukses",
+          description: "Data anggota berhasil diperbarui",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui data anggota",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateMemberField = (member: TeamMember, field: keyof TeamMember, value: any) => {
+  const handleDeleteMember = async (memberId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus anggota ini?')) return;
+
+    setIsLoading(true);
+    try {
+      const success = await TeamService.deleteTeamMember(memberId);
+      
+      if (success) {
+        const updatedMembers = teamMembers.filter(member => member.id !== memberId);
+        onUpdateTeam(updatedMembers);
+        toast({
+          title: "Sukses",
+          description: "Anggota tim berhasil dihapus",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menghapus anggota tim",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateMemberField = async (member: TeamMember, field: keyof TeamMember, value: any) => {
     const updatedMember = { ...member, [field]: value };
     const updatedMembers = teamMembers.map(m => m.id === member.id ? updatedMember : m);
     onUpdateTeam(updatedMembers);
+
+    // Update in Supabase
+    try {
+      const stats: any = {};
+      if (field === 'salesPoints') stats.salesPoints = value;
+      if (field === 'visits') stats.visits = value;
+      if (field === 'calls') stats.calls = value;
+      if (field === 'chats') stats.chats = value;
+
+      await TeamService.updateMemberStats(member.id, stats);
+    } catch (error) {
+      console.error('Error updating member stats:', error);
+    }
   };
+
+  if (!division) {
+    return (
+      <div className="text-center text-white py-8">
+        Silakan pilih divisi terlebih dahulu
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -80,7 +214,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
             </div>
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-700">
+                <Button className="bg-green-600 hover:bg-green-700" disabled={isLoading}>
                   + Tambah Anggota
                 </Button>
               </DialogTrigger>
@@ -179,8 +313,12 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
                     </div>
                   </div>
 
-                  <Button onClick={handleAddMember} className="w-full bg-green-600 hover:bg-green-700">
-                    Tambah Anggota
+                  <Button 
+                    onClick={handleAddMember} 
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Menambahkan...' : 'Tambah Anggota'}
                   </Button>
                 </div>
               </DialogContent>
@@ -189,8 +327,15 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
         </div>
       </Card>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center text-white py-4">
+          Memuat data...
+        </div>
+      )}
+
       {/* Team Members List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-4">
         {teamMembers.map((member) => (
           <Card key={member.id} className="bg-black/20 backdrop-blur-sm border-white/10">
             <div className="p-6">
@@ -209,6 +354,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
                     size="sm"
                     onClick={() => setEditingMember(member)}
                     className="bg-blue-600 hover:bg-blue-700"
+                    disabled={isLoading}
                   >
                     Edit
                   </Button>
@@ -216,6 +362,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
                     size="sm"
                     variant="destructive"
                     onClick={() => handleDeleteMember(member.id)}
+                    disabled={isLoading}
                   >
                     Hapus
                   </Button>
@@ -232,6 +379,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
                       value={member.salesPoints}
                       onChange={(e) => updateMemberField(member, 'salesPoints', parseInt(e.target.value) || 0)}
                       className="bg-gray-800 border-gray-600 text-white text-sm"
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
@@ -241,6 +389,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
                       value={member.visits}
                       onChange={(e) => updateMemberField(member, 'visits', parseInt(e.target.value) || 0)}
                       className="bg-gray-800 border-gray-600 text-white text-sm"
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -253,6 +402,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
                       value={member.calls}
                       onChange={(e) => updateMemberField(member, 'calls', parseInt(e.target.value) || 0)}
                       className="bg-gray-800 border-gray-600 text-white text-sm"
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
@@ -262,6 +412,7 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
                       value={member.chats}
                       onChange={(e) => updateMemberField(member, 'chats', parseInt(e.target.value) || 0)}
                       className="bg-gray-800 border-gray-600 text-white text-sm"
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -353,12 +504,14 @@ const TeamManager: React.FC<TeamManagerProps> = ({ division, teamMembers, onUpda
                 <Button 
                   onClick={() => handleUpdateMember(editingMember)}
                   className="bg-green-600 hover:bg-green-700"
+                  disabled={isLoading}
                 >
-                  Simpan
+                  {isLoading ? 'Menyimpan...' : 'Simpan'}
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={() => setEditingMember(null)}
+                  disabled={isLoading}
                 >
                   Batal
                 </Button>
