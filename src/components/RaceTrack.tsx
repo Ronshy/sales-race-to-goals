@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,8 +46,44 @@ const RaceTrack: React.FC<RaceTrackProps> = ({ division, teamMembers, onUpdateMe
     return checkpoints;
   };
 
+  // Leaderboard sort
+  const leaderboard = [...teamMembers].sort((a, b) => b.salesPoints - a.salesPoints);
+
   return (
     <div className="space-y-6">
+      {/* Leaderboard */}
+      <Card className="bg-black/30 border-white/10">
+        <div className="p-4">
+          <h3 className="text-xl font-bold text-white mb-2 flex items-center">🏆 Leaderboard</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-white text-sm">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="px-2 py-1 text-left">#</th>
+                  <th className="px-2 py-1 text-left">Nama</th>
+                  <th className="px-2 py-1 text-left">Poin</th>
+                  <th className="px-2 py-1 text-left">Kunjungan</th>
+                  <th className="px-2 py-1 text-left">Telepon</th>
+                  <th className="px-2 py-1 text-left">Chat</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((member, idx) => (
+                  <tr key={member.id} className={idx === 0 ? 'bg-yellow-900/30 font-bold' : ''}>
+                    <td className="px-2 py-1">{idx + 1}</td>
+                    <td className="px-2 py-1 flex items-center gap-2"><span className="text-xl">{member.avatar}</span> {member.name}</td>
+                    <td className="px-2 py-1 text-orange-400">{member.salesPoints}</td>
+                    <td className="px-2 py-1">{member.visits}</td>
+                    <td className="px-2 py-1">{member.calls}</td>
+                    <td className="px-2 py-1">{member.chats}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Card>
+
       {/* Race Track Header */}
       <Card className="bg-black/20 backdrop-blur-sm border-white/10">
         <div className="p-6">
@@ -84,6 +119,12 @@ const RaceTrack: React.FC<RaceTrackProps> = ({ division, teamMembers, onUpdateMe
           <div className="relative">
             {/* Track Background */}
             <div className="relative h-80 bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg overflow-hidden mb-6">
+              {/* Garis Start */}
+              <div className="absolute top-0 bottom-0 left-0 w-2 bg-gradient-to-b from-white to-black opacity-80 z-20 flex flex-col items-center justify-center">
+                <div className="absolute -top-8 left-0 text-xl">🚦</div>
+                <div className="absolute bottom-0 left-0 text-xs text-white font-bold">START</div>
+              </div>
+
               {/* Racing stripes */}
               <div className="absolute inset-0">
                 {[...Array(10)].map((_, i) => (
@@ -116,9 +157,10 @@ const RaceTrack: React.FC<RaceTrackProps> = ({ division, teamMembers, onUpdateMe
                 </div>
               ))}
 
-              {/* Finish Line */}
-              <div className="absolute top-0 bottom-0 right-0 w-2 bg-gradient-to-b from-black to-white opacity-80">
+              {/* Garis Finish */}
+              <div className="absolute top-0 bottom-0 right-0 w-2 bg-gradient-to-b from-black to-white opacity-80 z-20 flex flex-col items-center justify-center">
                 <div className="absolute -top-8 right-0 text-xl">🏆</div>
+                <div className="absolute bottom-0 right-0 text-xs text-white font-bold">FINISH</div>
               </div>
 
               {/* Cars */}
