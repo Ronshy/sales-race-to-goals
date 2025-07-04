@@ -120,9 +120,10 @@ const RaceTrack: React.FC<RaceTrackProps> = ({ division, teamMembers, onUpdateMe
             {/* Track Background */}
             <div className="relative h-80 bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg overflow-hidden mb-6">
               {/* Garis Start */}
-              <div className="absolute top-0 bottom-0 left-0 w-2 bg-gradient-to-b from-white to-black opacity-80 z-20 flex flex-col items-center justify-center">
-                <div className="absolute -top-8 left-0 text-xl">🚦</div>
-                <div className="absolute bottom-0 left-0 text-xs text-white font-bold">START</div>
+              <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-b from-green-400 via-green-500 to-green-600 opacity-90 z-20 flex flex-col items-center justify-center shadow-lg">
+                <div className="absolute -top-10 left-0 text-2xl animate-pulse">🚦</div>
+                <div className="absolute -top-6 left-0 text-xs text-green-300 font-bold bg-black/50 px-2 py-1 rounded">START</div>
+                <div className="absolute bottom-2 left-0 text-xs text-green-300 font-bold bg-black/50 px-2 py-1 rounded">GARIS</div>
               </div>
 
               {/* Racing stripes */}
@@ -158,9 +159,10 @@ const RaceTrack: React.FC<RaceTrackProps> = ({ division, teamMembers, onUpdateMe
               ))}
 
               {/* Garis Finish */}
-              <div className="absolute top-0 bottom-0 right-0 w-2 bg-gradient-to-b from-black to-white opacity-80 z-20 flex flex-col items-center justify-center">
-                <div className="absolute -top-8 right-0 text-xl">🏆</div>
-                <div className="absolute bottom-0 right-0 text-xs text-white font-bold">FINISH</div>
+              <div className="absolute top-0 bottom-0 right-0 w-3 bg-gradient-to-b from-red-400 via-red-500 to-red-600 opacity-90 z-20 flex flex-col items-center justify-center shadow-lg">
+                <div className="absolute -top-10 right-0 text-2xl animate-pulse">🏆</div>
+                <div className="absolute -top-6 right-0 text-xs text-red-300 font-bold bg-black/50 px-2 py-1 rounded">FINISH</div>
+                <div className="absolute bottom-2 right-0 text-xs text-red-300 font-bold bg-black/50 px-2 py-1 rounded">GARIS</div>
               </div>
 
               {/* Cars */}
